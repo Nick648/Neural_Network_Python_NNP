@@ -164,7 +164,7 @@ class OurNeuralNetwork:
         for epoch in range(epochs + 1):
             for x, y_true in zip(data, all_y_trues):
                 # --- Do a feedforward (we'll need these values later)
-                
+
                 # sum_h1_h2_h3 = [
                 #     self.weights[0] * x[0] + self.weights[1] * x[1] + self.weights[2] * x[2] + self.biases[0],
                 #     self.weights[3] * x[0] + self.weights[4] * x[1] + self.weights[5] * x[2] + self.biases[1],
@@ -228,7 +228,7 @@ class OurNeuralNetwork:
             if epoch % 100 == 0 or epoch == 0 or epoch == epochs:
                 y_preds = np.apply_along_axis(self.feedforward, 1, data)
                 loss = mse_loss(all_y_trues, y_preds)
-                print("Epoch %d loss: %.3f" % (epoch, loss))
+                print("Epoch %d loss: %.5f" % (epoch, loss))
 
 
 def main():
@@ -251,24 +251,30 @@ def main():
     network.train(data, all_ans)
 
     # Display results
+    print(f"Artificial intelligence has been successfully trained!\n")
     network.display_values("After train")
 
-    # Make some predictions
-    emily = np.array([-7, -3])  # 128 pounds, 63 inches
-    frank = np.array([20, 2])  # 155 pounds, 68 inches
-    ans_emily = network.feedforward(emily)
-    gender_emily = "Male"
-    if ans_emily > 0.5:
-        gender_emily = "Female"
-    ans_frank = network.feedforward(frank)
-    gender_frank = "Male"
-    if ans_frank > 0.5:
-        gender_frank = "Female"
-    print("Emily: %.3f" % ans_emily, f"Gender -> {gender_emily}")  # 0.951 - F
-    print("Frank: %.3f" % ans_frank, f"Gender -> {gender_frank}")  # 0.039 - M
+    while True:
+        try:
+            print(f"Enter age(int) height(sm) weight(kg) separating by a space:")
+            user_input = list(map(float, input("---> ").strip().split()))
+            if not user_input:
+                exit()
+            if len(user_input) == 3:
+                age, height, weight = user_input[0], user_input[1], user_input[2]
+                user_data = np.array([age, height, weight])
+                ans_user = network.feedforward(user_data)
+                gender = "Male"
+                if ans_user > 0.5:
+                    gender = "Female"
+                print(f"Continuation: {round(ans_user, 5)}; Gender -> {gender}\n")
+            else:
+                print(f"It was necessary to enter three integer values separated by a space!\n")
+        except Exception as ex:
+            print(f"-_- Error -> {type(ex).__name__}: {ex}\n")
 
 
 if __name__ == '__main__':
-    # create_tests()
+    create_tests()
     # read_data_from_files()
-    main()
+    # main()
