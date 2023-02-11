@@ -23,35 +23,33 @@ def write_to_file_values(text: str) -> None:
 
 
 def create_tests() -> None:
-    def input_men():
-        flag, weight_dict = 0, {}
-        print("Men:")
-        file_quest.write(f"# Men:\n")
-        for age in range(20, 70, 2):
-            if age // 10 != flag:
-                flag = age // 10
-                for height in range(150, 191, 5):
-                    val = float(input(f"{age=}; {height=} -> weight: "))
-                    weight_dict[height] = val
-            for height in range(150, 191, 5):
-                # weight = int(50+0.75*(height-150)+(age-20)/4)
-                file_quest.write(f"{age} {height} {weight_dict[height]}\n")
-                file_ans.write(f"{0}\n")
+    age_step, height_step = 2, 5
+    total_input = 0
 
-    def input_women():
+    def input_gender(total_input_gen: int, gender: str) -> int:
         flag, weight_dict = 0, {}
-        print("Women:")
-        file_quest.write(f"# Women:\n")
-        for age in range(20, 70, 2):
+        print(f"{gender}:")
+        file_quest.write(f"# {gender}:\n")
+        for age in range(20, 70, age_step):
             if age // 10 != flag:
                 flag = age // 10
-                for height in range(150, 191, 5):
-                    val = float(input(f"{age=}; {height=} -> weight: "))
+                for height in range(150, 191, height_step):
+                    while True:
+                        try:
+                            val = float(input(f"{age=}; {height=} -> weight: "))
+                            break
+                        except Exception as ex:
+                            print(f"Check input! {type(ex).__name__}: {ex}")
+                    total_input_gen += 1
                     weight_dict[height] = val
-            for height in range(150, 191, 5):
+            for height in range(150, 191, height_step):
                 # weight = int(50+0.75*(height-150)+(age-20)/4)
                 file_quest.write(f"{age} {height} {weight_dict[height]}\n")
-                file_ans.write(f"{1}\n")
+                if gender == "Men":
+                    file_ans.write(f"{0}\n")
+                elif gender == "Women":
+                    file_ans.write(f"{1}\n")
+        return total_input_gen
 
     # file_quest = open(file="data/Train_AI_2_quest.txt", mode="w", encoding="utf-8")
     file_quest = open(file="data/help_1.txt", mode="w", encoding="utf-8")
@@ -60,11 +58,12 @@ def create_tests() -> None:
     file_quest.write(f"Age Height Weight\n")
     file_ans.write(f"# Female -> 1; Male -> 0;\n")
 
-    input_men()
-    input_women()
+    total_input += input_gender(total_input, "Men")
+    total_input += input_gender(total_input, "Women")
 
     file_quest.close()
     file_ans.close()
+    print(f"\nFiles have been successfully recorded! Total inputs = {total_input}")
 
 
 def read_data_from_files() -> tuple:
@@ -75,18 +74,22 @@ def read_data_from_files() -> tuple:
         while input_values:
             try:
                 input_values = list(map(float, file_quest.readline().strip().split()))
-                temporary_array_quest.append(input_values)
+                if input_values:
+                    temporary_array_quest.append(input_values)
             except ValueError:
                 continue
             except Exception as ex:
                 print(f"Developer's mistake -> {type(ex).__name__}: {ex}")
 
     with open(file="data/Train_AI_2_ans.txt", mode="r", encoding="utf-8") as file_ans:
-        input_values = file_ans.readline()
-        while input_values:
+        file_ans.readline()
+        while True:
             try:
-                input_values = int(file_ans.readline().strip())
-                temporary_array_ans.append(input_values)
+                input_values = file_ans.readline().strip()
+                if input_values:
+                    temporary_array_ans.append(int(input_values))
+                else:
+                    break
             except ValueError:
                 continue
             except Exception as ex:
