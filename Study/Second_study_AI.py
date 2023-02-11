@@ -1,12 +1,12 @@
 import numpy as np
 
 
-def sigmoid(x):
+def sigmoid(x: float) -> float:
     # Sigmoid activation function: f(x) = 1 / (1 + e^(-x))
     return 1 / (1 + np.exp(-x))
 
 
-def derivative_sigmoid(x):
+def derivative_sigmoid(x: float) -> float:
     # Derivative of sigmoid: f'(x) = f(x) * (1 - f(x))
     fx = sigmoid(x)
     return fx * (1 - fx)
@@ -75,7 +75,10 @@ def read_data_from_files() -> tuple:
             try:
                 input_values = list(map(float, file_quest.readline().strip().split()))
                 if input_values:
-                    temporary_array_quest.append(input_values)
+                    age, height, weight = input_values
+                    # print(f"{age=};{height=};{weight=}")
+                    temporary_array_quest.append([age - 45, height - 170, weight - 75])
+                    # temporary_array_quest.append(input_values)
             except ValueError:
                 continue
             except Exception as ex:
@@ -108,7 +111,50 @@ def read_data_from_files() -> tuple:
         exit()
 
 
-class OurNeuralNetwork:
+class Neuron:
+    """
+    A neuron with:
+        - 3 inputs (count_weights_input)
+        - 1 bias
+    """
+
+    def __init__(self, count_weights_input: int, name_neuron: str = None):
+        self.name = name_neuron
+        self.weights = [np.random.normal() for _ in range(count_weights_input)]
+        self.bias = np.random.normal()
+        # print(f"Create Neuron {self.name} -> {self.weights=} -> {self.bias=};")
+
+    def update_weight(self, index: int, value: float) -> None:
+        self.weights[index] = self.weights[index] - value
+        # print(f"Update weights[{index}] of Neuron {self.name}")
+
+    def update_bias(self, value: float) -> None:
+        self.bias = self.bias - value
+        # print(f"Update bias of Neuron {self.name}")
+
+    def display_neuron(self) -> str:
+        info_neuron = f"Neuron {self.name}: "
+        for index in range(len(self.weights)):
+            info_neuron += f"w{index + 1} = {self.weights[index]}; "
+        info_neuron += f"b = {self.bias}"
+        return info_neuron
+
+    def sum_neuron(self, inputs: list[float]) -> float:
+        total = np.dot(self.weights, inputs) + self.bias
+        # report = f"sum_neuron: {self.display_neuron()}; {inputs=}\n\t"
+        # report += f"{np.dot(self.weights, inputs)=} -> {total=}\n"
+        # print(report)
+        return total
+
+    def feedforward_neuron(self, inputs: list[float]) -> float:
+        total = sigmoid(np.dot(self.weights, inputs) + self.bias)
+        # report = f"feedforward_neuron: {self.display_neuron()}; {inputs=}\n\t"
+        # report += f"{np.dot(self.weights, inputs)=} -> {total=}\n"
+        # print(report)
+        return total
+
+
+class NeuralNetwork:
     """
     A neural network with:
       - 3 inputs
@@ -116,141 +162,131 @@ class OurNeuralNetwork:
       - an output layer with 1 neuron (o1)
     """
 
-    def __init__(self):
-        # Weights
-        self.weights = [np.random.normal() for _ in range(12)]
-        self.w1 = np.random.normal()
-        self.w2 = np.random.normal()
-        self.w3 = np.random.normal()
-        self.w4 = np.random.normal()
-        self.w5 = np.random.normal()
-        self.w6 = np.random.normal()
-
-        # Biases
-        self.biases = [np.random.normal() for _ in range(4)]
-        self.b1 = np.random.normal()
-        self.b2 = np.random.normal()
-        self.b3 = np.random.normal()
+    def __init__(self, neuron_weights_input: int, count_h: int, count_output: int = 1):
+        # Create neurons
+        self.h_neurons = [Neuron(neuron_weights_input, f"h{h_i + 1}") for h_i in range(count_h)]
+        self.o_neurons = [Neuron(count_h, f"o{o_i + 1}") for o_i in range(count_output)]
+        # print(f"Create NeuralNetwork -> \n\t{self.h_neuron=}; \n\t{self.o_neuron=};\n")
         self.display_values("Start Network")
 
     def display_values(self, com: str = "Values"):
         values_str = f"{com} -> \n"
-        values_str += f"\tWeights:\n"
-        for index_w in range(len(self.weights)):
-            values_str += f"\tw{index_w + 1} = {self.weights[index_w]}\n"
-        values_str += f"\tBiases:\n"
-        for index_b in range(len(self.biases)):
-            values_str += f"\tb{index_b + 1} = {self.biases[index_b]}\n"
+        for index_h in range(len(self.h_neurons)):
+            values_str += f"\t{self.h_neurons[index_h].display_neuron()}\n"
+        for index_o in range(len(self.o_neurons)):
+            values_str += f"\t{self.o_neurons[index_o].display_neuron()}\n"
         write_to_file_values(values_str + "\n")
 
-    def feedforward(self, x):
+    def feedforward(self, x: list[float]) -> list[float]:
         # x is a numpy array with 3 elements. -> index+1=number in pic
-        h1 = sigmoid(self.w1 * x[0] + self.w2 * x[1] + self.b1)
-        h2 = sigmoid(self.w3 * x[0] + self.w4 * x[1] + self.b2)
-        # h1 = sigmoid(self.weights[0] * x[0] + self.weights[1] * x[1] + self.weights[2] * x[2] + self.biases[0])
-        # h2 = sigmoid(self.weights[3] * x[0] + self.weights[4] * x[1] + self.weights[5] * x[2] + self.biases[1])
-        # h3 = sigmoid(self.weights[6] * x[0] + self.weights[7] * x[1] + self.weights[8] * x[2] + self.biases[2])
-        # o1 = sigmoid(self.weights[9] * h1 + self.weights[10] * h2 + self.weights[11] * h3 + self.biases[3])
-        o1 = sigmoid(self.w5 * h1 + self.w6 * h2 + self.b3)
-        return o1
+        h_layer = [h_neuron.feedforward_neuron(x) for h_neuron in self.h_neurons]
+        o_layer = [o_neuron.feedforward_neuron(h_layer) for o_neuron in self.o_neurons]
+
+        return o_layer  # Return len(o_layer) = len(o_neurons)
 
     def train(self, data, all_y_trues):
         """
-        - data is a (n x 2) numpy array, n = # of samples in the dataset.
+        - data is a (n x 3) numpy array, n = # of samples in the dataset.
         - all_y_trues is a numpy array with n elements.
           Elements in all_y_trues correspond to those in data.
         """
 
-        learn_rate = 0.1
+        learn_rate = 0.2
         epochs = 3000  # number of times to loop through the entire dataset
 
         for epoch in range(epochs + 1):
-            for x, y_true in zip(data, all_y_trues):
+            for input_arr, y_true in zip(data, all_y_trues):
                 # --- Do a feedforward (we'll need these values later)
-
-                # sum_h1_h2_h3 = [
-                #     self.weights[0] * x[0] + self.weights[1] * x[1] + self.weights[2] * x[2] + self.biases[0],
-                #     self.weights[3] * x[0] + self.weights[4] * x[1] + self.weights[5] * x[2] + self.biases[1],
-                #     self.weights[6] * x[0] + self.weights[7] * x[1] + self.weights[8] * x[2] + self.biases[2]
-                # ]
-                sum_h1 = self.w1 * x[0] + self.w2 * x[1] + self.b1
-                # sum_h1 = self.weights[0] * x[0] + self.weights[1] * x[1] + self.weights[2] * x[2] + self.biases[0]
-                h1 = sigmoid(sum_h1)
-
-                sum_h2 = self.w3 * x[0] + self.w4 * x[1] + self.b2
-                # sum_h2 = self.weights[3] * x[0] + self.weights[4] * x[1] + self.weights[5] * x[2] + self.biases[1]
-                h2 = sigmoid(sum_h2)
-
-                # sum_h3 = self.weights[6] * x[0] + self.weights[7] * x[1] + self.weights[8] * x[2] + self.biases[2]
-                # h3 = sigmoid(sum_h3)
-
-                sum_o1 = self.w5 * h1 + self.w6 * h2 + self.b3
-                # sum_o1 = self.weights[9] * h1 + self.weights[10] * h2 + self.weights[11] * h3 + self.biases[3]
-                o1 = sigmoid(sum_o1)
-                y_pred = o1
+                h_sum_layer = [h_neuron.sum_neuron(input_arr) for h_neuron in self.h_neurons]  # = len(h_neurons)
+                h_layer = [h_neuron.feedforward_neuron(input_arr) for h_neuron in self.h_neurons]  # = len(h_neurons)
+                o_sum_layer = [o_neuron.sum_neuron(h_layer) for o_neuron in self.o_neurons]  # = len(o_neurons)
+                o_layer = [o_neuron.feedforward_neuron(h_layer) for o_neuron in self.o_neurons]  # = len(o_neurons)
+                y_pred = o_layer
 
                 # --- Calculate partial derivatives.
                 # --- Naming: d_L_d_w1 represents "partial L / partial w1"
-                d_L_d_ypred = -2 * (y_true - y_pred)
+                # d_L_d_ypred = -2 * (y_true - y_pred)
+                dL_d_ypred_list = list(-2 * (np.array(y_true) - np.array(y_pred)))  # = len(o_neurons)
 
-                # Neuron o1
-                d_ypred_d_w5 = h1 * derivative_sigmoid(sum_o1)
-                d_ypred_d_w6 = h2 * derivative_sigmoid(sum_o1)
-                d_ypred_d_b3 = derivative_sigmoid(sum_o1)
+                # --- Neurons output
+                d_ypred_o_dw = []  # = len(o_neurons) -> [ len(h_neurons) ]
+                for sum_o in o_sum_layer:
+                    new_o = []
+                    for h in h_layer:
+                        new_o.append(h * derivative_sigmoid(sum_o))  # d_ypred_d_w5 = h1 * derivative_sigmoid(sum_o1)
+                    d_ypred_o_dw.append(new_o)
 
-                d_ypred_d_h1 = self.w5 * derivative_sigmoid(sum_o1)
-                d_ypred_d_h2 = self.w6 * derivative_sigmoid(sum_o1)
+                d_ypred_o_db = [derivative_sigmoid(sum_o) for sum_o in o_sum_layer]  # = len(o_neurons)
 
-                # Neuron h1
-                d_h1_d_w1 = x[0] * derivative_sigmoid(sum_h1)
-                d_h1_d_w2 = x[1] * derivative_sigmoid(sum_h1)
-                d_h1_d_b1 = derivative_sigmoid(sum_h1)
+                d_ypred_o_dh = []  # = len(o_neurons) -> [ len(h_neurons) ]
+                for neuron_o, sum_o in zip(self.o_neurons, o_sum_layer):
+                    new_o = []
+                    for weight in neuron_o.weights:
+                        new_o.append(weight * derivative_sigmoid(sum_o))
+                    d_ypred_o_dh.append(new_o)  # d_ypred_d_h1 = self.w5 * derivative_sigmoid(sum_o1)
 
-                # Neuron h2
-                d_h2_d_w3 = x[0] * derivative_sigmoid(sum_h2)
-                d_h2_d_w4 = x[1] * derivative_sigmoid(sum_h2)
-                d_h2_d_b2 = derivative_sigmoid(sum_h2)
+                # --- Neurons h_layer
+                dh_dw = []  # = len(h_neurons) -> [ len(count_input) ]
+                dh_db = []  # = len(h_neurons)
+                for sum_h in h_sum_layer:
+                    new_h = []
+                    for data_x in input_arr:
+                        new_h.append(
+                            data_x * derivative_sigmoid(sum_h))  # d_h1_d_w1 = input_arr[0] * derivative_sigmoid(sum_h1)
+                    dh_dw.append(new_h)
+                    dh_db.append(derivative_sigmoid(sum_h))
 
-                # --- Update weights and biases
-                # Neuron h1
-                self.w1 -= learn_rate * d_L_d_ypred * d_ypred_d_h1 * d_h1_d_w1
-                self.w2 -= learn_rate * d_L_d_ypred * d_ypred_d_h1 * d_h1_d_w2
-                self.b1 -= learn_rate * d_L_d_ypred * d_ypred_d_h1 * d_h1_d_b1
+                # --- Update weights and biases for h Neurons
+                for d_L_d_ypred_val, num_o_dy_dh in zip(dL_d_ypred_list, d_ypred_o_dh):
+                    for h_neuron, num_h_dh_dw, dh_db_val, o_dy_dh_val in zip(self.h_neurons, dh_dw, dh_db, num_o_dy_dh):
+                        for pos, dh_dw_val in enumerate(num_h_dh_dw):
+                            h_neuron.update_weight(pos, learn_rate * d_L_d_ypred_val * o_dy_dh_val * dh_dw_val)
+                        h_neuron.update_bias(learn_rate * d_L_d_ypred_val * o_dy_dh_val * dh_db_val)
 
-                # Neuron h2
-                self.w3 -= learn_rate * d_L_d_ypred * d_ypred_d_h2 * d_h2_d_w3
-                self.w4 -= learn_rate * d_L_d_ypred * d_ypred_d_h2 * d_h2_d_w4
-                self.b2 -= learn_rate * d_L_d_ypred * d_ypred_d_h2 * d_h2_d_b2
+                # --- Update weights and biases for o Neurons
+                for o_neuron, d_L_d_ypred_val, num_d_ypred_o_dw, d_ypred_o_db_val in zip(self.o_neurons,
+                                                                                         dL_d_ypred_list, d_ypred_o_dw,
+                                                                                         d_ypred_o_db):
+                    for pos, d_ypred_o_dw_val in enumerate(num_d_ypred_o_dw):
+                        o_neuron.update_weight(pos, learn_rate * d_L_d_ypred_val * d_ypred_o_dw_val)
+                    o_neuron.update_bias(learn_rate * d_L_d_ypred_val * d_ypred_o_db_val)
 
-                # Neuron o1
-                self.w5 -= learn_rate * d_L_d_ypred * d_ypred_d_w5
-                self.w6 -= learn_rate * d_L_d_ypred * d_ypred_d_w6
-                self.b3 -= learn_rate * d_L_d_ypred * d_ypred_d_b3
+                # # Neuron h1
+                # self.w1 -= learn_rate * d_L_d_ypred * d_ypred_d_h1 * d_h1_d_w1
+                # self.w2 -= learn_rate * d_L_d_ypred * d_ypred_d_h1 * d_h1_d_w2
+                # self.b1 -= learn_rate * d_L_d_ypred * d_ypred_d_h1 * d_h1_d_b1
+                #
+                # # Neuron h2
+                # self.w3 -= learn_rate * d_L_d_ypred * d_ypred_d_h2 * d_h2_d_w3
+                # self.w4 -= learn_rate * d_L_d_ypred * d_ypred_d_h2 * d_h2_d_w4
+                # self.b2 -= learn_rate * d_L_d_ypred * d_ypred_d_h2 * d_h2_d_b2
+                #
+                # # Neuron o1
+                # self.w5 -= learn_rate * d_L_d_ypred * d_ypred_d_w5
+                # self.w6 -= learn_rate * d_L_d_ypred * d_ypred_d_w6
+                # self.b3 -= learn_rate * d_L_d_ypred * d_ypred_d_b3
 
             # --- Calculate total loss at the end of each epoch
             if epoch % 100 == 0 or epoch == 0 or epoch == epochs:
                 y_preds = np.apply_along_axis(self.feedforward, 1, data)
+                new_arr = []
+                for item in y_preds:
+                    if len(item) == 1:
+                        for answers in item:
+                            new_arr.append(answers)
+                    else:
+                        max_val = max(item)
+                        new_arr.append(max_val)
+                y_preds = np.array(new_arr)
                 loss = mse_loss(all_y_trues, y_preds)
+                # print(f"{y_preds=};\n{all_y_trues};\n{loss=}")
                 print("Epoch %d loss: %.5f" % (epoch, loss))
 
 
 def main():
-    # Define dataset
-    data = np.array([
-        [-2, -1],  # Alice
-        [25, 6],  # Bob
-        [17, 4],  # Charlie
-        [-15, -6],  # Diana
-    ])
-    all_ans = np.array([
-        1,  # Alice
-        0,  # Bob
-        0,  # Charlie
-        1,  # Diana
-    ])
-
+    data, all_ans = read_data_from_files()
     # Train our neural network!
-    network = OurNeuralNetwork()
+    network = NeuralNetwork(neuron_weights_input=3, count_h=2, count_output=1)
     network.train(data, all_ans)
 
     # Display results
@@ -265,12 +301,10 @@ def main():
                 exit()
             if len(user_input) == 3:
                 age, height, weight = user_input[0], user_input[1], user_input[2]
-                user_data = np.array([age, height, weight])
-                ans_user = network.feedforward(user_data)
-                gender = "Male"
-                if ans_user > 0.5:
-                    gender = "Female"
-                print(f"Continuation: {round(ans_user, 5)}; Gender -> {gender}\n")
+                # age, height = user_input[0], user_input[1]
+                ans_user = network.feedforward([age, height, weight])
+                # ans_user = network.feedforward([age, height])
+                print(f"Continuation: {ans_user=}; Gender -> {1}\n")
             else:
                 print(f"It was necessary to enter three integer values separated by a space!\n")
         except Exception as ex:
@@ -278,6 +312,5 @@ def main():
 
 
 if __name__ == '__main__':
-    create_tests()
-    # read_data_from_files()
-    # main()
+    # create_tests()
+    main()

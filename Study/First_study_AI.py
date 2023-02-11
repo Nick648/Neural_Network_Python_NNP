@@ -139,7 +139,8 @@ class OurNeuralNetwork:
             if epoch % 100 == 0 or epoch == 0 or epoch == epochs:
                 y_preds = np.apply_along_axis(self.feedforward, 1, data)
                 loss = mse_loss(all_y_trues, y_preds)
-                print("Epoch %d loss: %.3f" % (epoch, loss))
+                # print(f"{y_preds=}; {loss=}")
+                print("Epoch %d loss: %.5f" % (epoch, loss))
 
 
 def main():

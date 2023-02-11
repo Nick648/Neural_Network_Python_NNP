@@ -76,9 +76,20 @@ def data_txt_to_dict() -> None:
 
 
 def read_json_file() -> None:
+    def update_keys(dict_in: dict, type_key: type) -> dict:
+        cash_dict = {}
+        for key, val in dict_in.items():
+            key = type_key(key)
+            if isinstance(val, dict):
+                cash_dict[key] = update_keys(val, type_key)
+            else:
+                cash_dict[key] = val
+        return cash_dict
+
     global DICT_AWH
     with open("data/genders.json", "r", encoding="utf-8") as read_file:
-        DICT_AWH = json.load(read_file)
+        read_dict = json.load(read_file)
+    DICT_AWH = update_keys(read_dict, float)
 
 
 def check_gender(search_age: float, search_height: float, search_weight: float) -> str:
@@ -103,7 +114,7 @@ def check_gender(search_age: float, search_height: float, search_weight: float) 
                             find_weight = weight
 
                     gender = DICT_AWH[find_age][find_height][find_weight]
-                    print(f"Find gender: {find_age=}; {find_height=}; {find_weight} -> {gender}")
+                    print(f"Find gender: {find_age=}; {find_height=}; {find_weight=}; Continuation Gender -> {gender}")
                     return gender
 
 
@@ -116,8 +127,7 @@ def check_input() -> None:
                 exit()
             if len(user_input) == 3:
                 age, height, weight = user_input[0], user_input[1], user_input[2]
-                gender = check_gender(age, height, weight)
-                print(f"Continuation Gender -> {gender}\n")
+                check_gender(age, height, weight)
             else:
                 print(f"It was necessary to enter three integer values separated by a space!\n")
         except Exception as ex:
