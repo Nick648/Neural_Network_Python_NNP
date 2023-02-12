@@ -18,79 +18,50 @@ def mse_loss(y_true, y_pred):
 
 
 def write_to_file_values(text: str) -> None:
-    with open(file="data/Values_AI_2.txt", mode="a", encoding="utf_8") as file:
+    with open(file="data/Values_AI_3.txt", mode="a", encoding="utf_8") as file:
         file.write(text)
 
 
 def create_tests() -> None:
-    age_step, height_step = 2, 5
-    total_input = 0
+    file_quest = open(file="data/Train_AI_3_quest.txt", mode="w", encoding="utf-8")
+    file_ans = open(file="data/Train_AI_3_ans.txt", mode="w", encoding="utf-8")
+    file_quest.write(f"Summand_1 Sign(Mb) Summand_2\n")
+    file_ans.write(f"# List of numbers[0..9]\n")
 
-    def input_gender(total_input_gen: int, gender: str) -> int:
-        flag, weight_dict = 0, {}
-        print(f"{gender}:")
-        file_quest.write(f"# {gender}:\n")
-        for age in range(20, 70, age_step):
-            if age // 10 != flag:
-                flag = age // 10
-                for height in range(150, 191, height_step):
-                    while True:
-                        try:
-                            val = float(input(f"{age=}; {height=} -> weight: "))
-                            break
-                        except Exception as ex:
-                            print(f"Check input! {type(ex).__name__}: {ex}")
-                    total_input_gen += 1
-                    weight_dict[height] = val
-            for height in range(150, 191, height_step):
-                # weight = int(50+0.75*(height-150)+(age-20)/4)
-                file_quest.write(f"{age} {height} {weight_dict[height]}\n")
-                if gender == "Men":
-                    file_ans.write(f"{0}\n")
-                elif gender == "Women":
-                    file_ans.write(f"{1}\n")
-        return total_input_gen
-
-    # file_quest = open(file="data/Train_AI_2_quest.txt", mode="w", encoding="utf-8")
-    file_quest = open(file="data/help_1.txt", mode="w", encoding="utf-8")
-    # file_ans = open(file="data/Train_AI_2_ans.txt", mode="w", encoding="utf-8")
-    file_ans = open(file="data/help_2.txt", mode="w", encoding="utf-8")
-    file_quest.write(f"Age Height Weight\n")
-    file_ans.write(f"# Female -> 1; Male -> 0;\n")
-
-    total_input += input_gender(total_input, "Men")
-    total_input += input_gender(total_input, "Women")
+    for a in range(10):
+        for b in range(10):
+            if a + b < 10:
+                ans_list = ["0" for _ in range(10)]
+                ans_list[a+b] = "1"
+                file_quest.write(f"{a} {b}\n")
+                file_ans.write(f"{' '.join(ans_list)}\n")
 
     file_quest.close()
     file_ans.close()
-    print(f"\nFiles have been successfully recorded! Total inputs = {total_input}")
+    print(f"\nFiles for tests have been successfully recorded!")
 
 
 def read_data_from_files() -> tuple:
     temporary_array_quest, temporary_array_ans = [], []
-    with open(file="data/Train_AI_2_quest.txt", mode="r", encoding="utf-8") as file_quest:
-        for _ in range(2):
-            input_values = file_quest.readline()
+    with open(file="data/Train_AI_3_quest.txt", mode="r", encoding="utf-8") as file_quest:
+        input_values = file_quest.readline()
         while input_values:
             try:
-                input_values = list(map(float, file_quest.readline().strip().split()))
+                input_values = list(map(int, file_quest.readline().strip().split()))
                 if input_values:
-                    age, height, weight = input_values
-                    # print(f"{age=};{height=};{weight=}")
-                    temporary_array_quest.append([age - 45, height - 170, weight - 75])
-                    # temporary_array_quest.append(input_values)
+                    temporary_array_quest.append(input_values)
             except ValueError:
                 continue
             except Exception as ex:
                 print(f"Developer's mistake -> {type(ex).__name__}: {ex}")
 
-    with open(file="data/Train_AI_2_ans.txt", mode="r", encoding="utf-8") as file_ans:
+    with open(file="data/Train_AI_3_ans.txt", mode="r", encoding="utf-8") as file_ans:
         file_ans.readline()
         while True:
             try:
-                input_values = file_ans.readline().strip()
+                input_values = list(map(int, file_ans.readline().strip().split()))
                 if input_values:
-                    temporary_array_ans.append(int(input_values))
+                    temporary_array_ans.append(input_values)
                 else:
                     break
             except ValueError:
@@ -104,7 +75,7 @@ def read_data_from_files() -> tuple:
         if len(data) == len(all_ans):
             return data, all_ans
         else:
-            print(f"Developer's mistake -> {len(data)=} != {len(all_ans)}")
+            print(f"Developer's mistake -> {len(data)=} != {len(all_ans)=}")
             exit()
     except Exception as ex:
         print(f"Developer's mistake -> {type(ex).__name__}: {ex}")
@@ -178,7 +149,6 @@ class NeuralNetwork:
         write_to_file_values(values_str + "\n")
 
     def feedforward(self, x: list[float]) -> list[float]:
-        # x is a numpy array with 3 elements. -> index+1=number in pic
         h_layer = [h_neuron.feedforward_neuron(x) for h_neuron in self.h_neurons]
         o_layer = [o_neuron.feedforward_neuron(h_layer) for o_neuron in self.o_neurons]
 
@@ -191,8 +161,8 @@ class NeuralNetwork:
           Elements in all_y_trues correspond to those in data.
         """
 
-        learn_rate = 0.2
-        epochs = 3000  # number of times to loop through the entire dataset
+        learn_rate = 0.5
+        epochs = 5000  # number of times to loop through the entire dataset
 
         for epoch in range(epochs + 1):
             for input_arr, y_true in zip(data, all_y_trues):
@@ -205,7 +175,6 @@ class NeuralNetwork:
 
                 # --- Calculate partial derivatives.
                 # --- Naming: d_L_d_w1 represents "partial L / partial w1"
-                # d_L_d_ypred = -2 * (y_true - y_pred)
                 dL_d_ypred_list = list(-2 * (np.array(y_true) - np.array(y_pred)))  # = len(o_neurons)
 
                 # --- Neurons output
@@ -251,42 +220,53 @@ class NeuralNetwork:
                         o_neuron.update_weight(pos, learn_rate * d_L_d_ypred_val * d_ypred_o_dw_val)
                     o_neuron.update_bias(learn_rate * d_L_d_ypred_val * d_ypred_o_db_val)
 
-                # # Neuron h1
-                # self.w1 -= learn_rate * d_L_d_ypred * d_ypred_d_h1 * d_h1_d_w1
-                # self.w2 -= learn_rate * d_L_d_ypred * d_ypred_d_h1 * d_h1_d_w2
-                # self.b1 -= learn_rate * d_L_d_ypred * d_ypred_d_h1 * d_h1_d_b1
-                #
-                # # Neuron h2
-                # self.w3 -= learn_rate * d_L_d_ypred * d_ypred_d_h2 * d_h2_d_w3
-                # self.w4 -= learn_rate * d_L_d_ypred * d_ypred_d_h2 * d_h2_d_w4
-                # self.b2 -= learn_rate * d_L_d_ypred * d_ypred_d_h2 * d_h2_d_b2
-                #
-                # # Neuron o1
-                # self.w5 -= learn_rate * d_L_d_ypred * d_ypred_d_w5
-                # self.w6 -= learn_rate * d_L_d_ypred * d_ypred_d_w6
-                # self.b3 -= learn_rate * d_L_d_ypred * d_ypred_d_b3
-
             # --- Calculate total loss at the end of each epoch
-            if epoch % 100 == 0 or epoch == 0 or epoch == epochs:
+            if epoch % 100 == 0 or epoch == epochs:
                 y_preds = np.apply_along_axis(self.feedforward, 1, data)
                 new_arr = []
                 for item in y_preds:
                     if len(item) == 1:
                         for answers in item:
                             new_arr.append(answers)
-                    else:
-                        max_val = max(item)
-                        new_arr.append(max_val)
-                y_preds = np.array(new_arr)
+                if new_arr:
+                    y_preds = np.array(new_arr)
                 loss = mse_loss(all_y_trues, y_preds)
                 # print(f"{y_preds=};\n{all_y_trues};\n{loss=}")
                 print("Epoch %d loss: %.5f" % (epoch, loss))
 
 
+def example_data() -> tuple:
+    data = np.array([[0, 0], [0, 2], [0, 3],  # 0 2 3
+                     [1, 0], [1, 5], [1, 1],  # 1 6 2
+                     [2, 2], [2, 3], [2, 1],  # 4 5 3
+                     [3, 1], [3, 3], [3, 2],  # 4 6 5
+                     [4, 2], [4, 3], [4, 4],  # 6 7 8
+                     [5, 3], [5, 2], [5, 4],  # 8 7 9
+                     [6, 1], [6, 3], [6, 2],  # 7 9 8
+                     [7, 0], [7, 1], [7, 2],  # 7 8 9
+                     [8, 1], [8, 0], [8, 1],  # 9 8 9
+                     [9, 0], [9, 0], [0, 9],  # 9 9 9
+                     ])
+    #                    0  1  2  3  4  5  6  7  8  9    0  1  2  3  4  5  6  7  8  9    0  1  2  3  4  5  6  7  8  9
+    all_ans = np.array([[1, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 1, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                        [0, 1, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0, 0, 0], [0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 1, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+                        [0, 0, 0, 0, 0, 0, 1, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+                        [0, 0, 0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [0, 0, 0, 0, 0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0, 0, 0, 1, 0],
+                        [0, 0, 0, 0, 0, 0, 0, 1, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0, 0, 0, 1, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        [0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                        ])
+    return data, all_ans
+
+
 def main():
     data, all_ans = read_data_from_files()
+
     # Train our neural network!
-    network = NeuralNetwork(neuron_weights_input=3, count_h=2, count_output=1)
+    network = NeuralNetwork(neuron_weights_input=2, count_h=6, count_output=10)
     network.train(data, all_ans)
 
     # Display results
@@ -295,18 +275,17 @@ def main():
 
     while True:
         try:
-            print(f"Enter age(int) height(sm) weight(kg) separating by a space:")
-            user_input = list(map(float, input("---> ").strip().split()))
+            print(f"Enter two numbers to add up separating by a space:")
+            user_input = list(map(int, input("---> ").strip().split()))
             if not user_input:
                 exit()
-            if len(user_input) == 3:
-                age, height, weight = user_input[0], user_input[1], user_input[2]
-                # age, height = user_input[0], user_input[1]
-                ans_user = network.feedforward([age, height, weight])
-                # ans_user = network.feedforward([age, height])
-                print(f"Continuation: {ans_user=}; Gender -> {1}\n")
+            if len(user_input) == 2:
+                ans_user = network.feedforward(user_input)
+                format_ans = [f"{item_float:.3f}" for item_float in ans_user]
+                total_ans = ans_user.index(max(ans_user))
+                print(f"Continuation: {format_ans}; Number -> {total_ans}\n")
             else:
-                print(f"It was necessary to enter three integer values separated by a space!\n")
+                print(f"It was necessary to enter two integer values separated by a space!\n")
         except Exception as ex:
             print(f"-_- Error -> {type(ex).__name__}: {ex}\n")
 

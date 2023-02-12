@@ -131,17 +131,12 @@ def main():
 
 def check_sub_array() -> None:
     data = np.array([[2, 3, 4], [1, 5, 2], [3, 5, 1]])
-    new_arr = []
-    for item in data:
-        if len(item) == 1:
-            for answers in item:
-                new_arr.append(answers)
-        else:
-            max_val = max(item)
-            new_arr.append(max_val)
-    data = np.array(new_arr)
-    print(f"{data=}")
+    ans = np.array([[1, 0, 1], [0, 0, 1], [1, 0, 0]])
+    print(mse_loss(ans, data))
 
+def mse_loss(y_true, y_pred):
+    # y_true and y_pred are numpy arrays of the same length.
+    return ((y_true - y_pred) ** 2).mean()
 
 if __name__ == '__main__':
     check_sub_array()
