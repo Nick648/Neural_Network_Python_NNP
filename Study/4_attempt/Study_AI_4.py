@@ -1,4 +1,9 @@
 import numpy as np
+from random import randint
+
+COUNT_INPUT = 5
+COUNT_OUTPUT = 10
+COUNT_START_NETWORK = 10
 
 
 def sigmoid(x: float) -> float:
@@ -22,19 +27,28 @@ def write_to_file_values(text: str) -> None:
         file.write(text)
 
 
+def transform_input_number(number: int) -> list[int]:
+    new_arr = []
+    for _ in range(COUNT_INPUT):
+        new_arr.insert(0, number % 10 - 5)
+        number //= 10
+    return new_arr
+
+
 def create_tests() -> None:
     file_quest = open(file="data/Train_AI_4_quest.txt", mode="w", encoding="utf-8")
     file_ans = open(file="data/Train_AI_4_ans.txt", mode="w", encoding="utf-8")
     file_quest.write(f"Summand_1 Sign(Mb) Summand_2\n")
     file_ans.write(f"# List[8] of numbers in binary\n")
 
-    count_output = 8
-    for a in range(0, 2 ** count_output, count_output-2):
-        bin_a = bin(a)
-        ans_list = [sym for sym in bin_a[2:]]
-        while len(ans_list) < count_output:
+    for a in range(0, 2 ** COUNT_OUTPUT, COUNT_OUTPUT - 2):
+        x = randint(0, 2 ** COUNT_OUTPUT - 1)
+        bin_x = bin(x)
+        ans_list = [sym for sym in bin_x[2:]]
+        while len(ans_list) < COUNT_OUTPUT:
             ans_list.insert(0, '0')
-        file_quest.write(f"{a}\n")
+        input_list = [str(item) for item in transform_input_number(x)]
+        file_quest.write(f"{' '.join(input_list)}\n")
         file_ans.write(f"{' '.join(ans_list)}\n")
 
     file_quest.close()
@@ -48,9 +62,9 @@ def read_data_from_files() -> tuple:
         file_quest.readline()
         while True:
             try:
-                input_values = file_quest.readline().strip()
+                input_values = list(map(int, file_quest.readline().strip().split()))
                 if input_values:
-                    temporary_array_quest.append([int(input_values)])
+                    temporary_array_quest.append(input_values)
                 else:
                     break
             except ValueError:
@@ -86,12 +100,6 @@ def read_data_from_files() -> tuple:
 
 
 class Neuron:
-    """
-    A neuron with:
-        - 3 inputs (count_weights_input)
-        - 1 bias
-    """
-
     def __init__(self, count_weights_input: int, name_neuron: str = None):
         self.name = name_neuron
         self.weights = [np.random.normal() for _ in range(count_weights_input)]
@@ -129,13 +137,6 @@ class Neuron:
 
 
 class NeuralNetwork:
-    """
-    A neural network with:
-      - 3 inputs
-      - a hidden layer with 3 neurons (h1, h2, h3)
-      - an output layer with 1 neuron (o1)
-    """
-
     def __init__(self, neuron_weights_input: int, count_h: int, count_output: int = 1):
         # Create neurons
         self.h_neurons = [Neuron(neuron_weights_input, f"h{h_i + 1}") for h_i in range(count_h)]
@@ -157,15 +158,9 @@ class NeuralNetwork:
 
         return o_layer  # Return len(o_layer) = len(o_neurons)
 
-    def train(self, data, all_y_trues):
-        """
-        - data is a (n x 3) numpy array, n = # of samples in the dataset.
-        - all_y_trues is a numpy array with n elements.
-          Elements in all_y_trues correspond to those in data.
-        """
-
-        learn_rate = 0.1
-        epochs = 1000  # number of times to loop through the entire dataset
+    def train(self, data, all_y_trues, choose_network: bool = False):
+        learn_rate = 0.3
+        epochs = 5000  # number of times to loop through the entire dataset
 
         for epoch in range(epochs + 1):
             for input_arr, y_true in zip(data, all_y_trues):
@@ -236,13 +231,26 @@ class NeuralNetwork:
                 loss = mse_loss(all_y_trues, y_preds)
                 # print(f"{y_preds=};\n{all_y_trues};\n{loss=}")
                 print("Epoch %d loss: %.5f" % (epoch, loss))
+                if choose_network and epoch == 100:
+                    return loss
+
+
+def choose_best_network(data, all_ans) -> NeuralNetwork:
+    networks = [NeuralNetwork(neuron_weights_input=COUNT_INPUT, count_h=10, count_output=COUNT_OUTPUT)
+                for _ in range(COUNT_START_NETWORK)]
+    results = [networks[net_index].train(data, all_ans, True) for net_index in range(COUNT_START_NETWORK)]
+    best_network = results.index(min(results))
+    # print(f"{results=};\n{best_network=} -> {networks[best_network]}")
+    return networks[best_network]
 
 
 def main():
     data, all_ans = read_data_from_files()
 
     # Train our neural network!
-    network = NeuralNetwork(neuron_weights_input=1, count_h=6, count_output=8)
+    # network = NeuralNetwork(neuron_weights_input=COUNT_INPUT, count_h=10, count_output=COUNT_OUTPUT)
+    network = choose_best_network(data, all_ans)
+    print(f"The best artificial intelligence was successfully selected!\n")
     network.train(data, all_ans)
 
     # Display results
@@ -256,13 +264,14 @@ def main():
             if not user_input:
                 exit()
             if len(user_input) == 1:
-                ans_user = network.feedforward(user_input)
-                format_ans = [f"{item_float:.3f}" for item_float in ans_user]
-                round_format_ans = [round(item_float) for item_float in ans_user]
+                input_data = transform_input_number(user_input[0])
+                ans_ai = network.feedforward(input_data)
+                format_ans = [f"{item_float:.2f}" for item_float in ans_ai]
+                round_format_ans = [round(item_float) for item_float in ans_ai]
                 total_ans = 0
-                for i in range(8):
-                    total_ans += round_format_ans[7 - i] * 2 ** i
-                print(f"Continuation: {format_ans} -> {round_format_ans}; Number -> {total_ans}\n")
+                for i in range(COUNT_OUTPUT):
+                    total_ans += round_format_ans[COUNT_OUTPUT - 1 - i] * 2 ** i
+                print(f"Continuation: {format_ans} -> {round_format_ans}; Number: {total_ans}; Enter -> {input_data}\n")
             else:
                 print(f"It was necessary to enter integer value!\n")
         except Exception as ex:
