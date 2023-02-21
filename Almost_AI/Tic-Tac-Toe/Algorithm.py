@@ -1,11 +1,13 @@
 from time import perf_counter
+import json
 from functools import cache, lru_cache
 
 FIELD_SIZE = 3
 field = [['' for _ in range(FIELD_SIZE)] for _ in range(FIELD_SIZE)]
 vals_test_1 = [[i for i in range(j, j + FIELD_SIZE)] for j in range(1, FIELD_SIZE ** 2, FIELD_SIZE)]
+READY_SOLUTION = {}
 
-field_dis = '''
+field_display = '''
  X | X | X 
 -----------
  X | X | X 
@@ -18,6 +20,29 @@ def set_field(size: int = 3):
     global field, FIELD_SIZE
     FIELD_SIZE = size
     field = [['' for _ in range(FIELD_SIZE)] for _ in range(FIELD_SIZE)]
+
+
+def write_data_json(dump_dict: dict) -> None:
+    """ Writes the dictionary to a json file """
+    with open(file="data/ready solutions.json", mode="w", encoding="utf-8") as write_file:
+        json.dump(dump_dict, write_file, ensure_ascii=False, indent=4)
+    print(f"File: data/genders.json was created!\n")
+
+
+def read_json_file() -> None:
+    def update_type_keys(dict_in: dict, type_key: type) -> dict:
+        cash_dict = {}
+        for key, val in dict_in.items():
+            key = type_key(key)
+            if isinstance(val, dict):
+                cash_dict[key] = update_type_keys(val, type_key)
+            else:
+                cash_dict[key] = val
+        return cash_dict
+
+    global READY_SOLUTION
+    with open("data/ready solutions.json", "r", encoding="utf-8") as read_file:
+        READY_SOLUTION = json.load(read_file)
 
 
 def display_field(arr: list[list[str]], mes: str = None) -> None:
@@ -83,9 +108,8 @@ def score(game_field: list[list[str]], depth: int, player: str) -> int:
         return 0
 
 
-# @lru_cache(maxsize=800)
 def minimax(game_field: list[list[str]], depth: int = 1, player: str = 'X', opponent: str = 'O',
-            step_player: bool = True):
+            step_player: bool = True) -> tuple:
     # print(f"Minimax: {game_field=}; {depth=}; {step_player=}")
     if check_end_game(game_field) or check_win(game_field):
         # print(f"\tReturn {game_field=}; {depth=}; {step_player=}; {score(game_field, depth, player)}")
@@ -124,7 +148,82 @@ def minimax(game_field: list[list[str]], depth: int = 1, player: str = 'X', oppo
         return scores[min_score_index], choice
 
 
-def test_game():
+def get_cache_minimax(game_field: list[list[str]], depth: int = 1, player: str = 'X', opponent: str = 'O',
+                      step_player: bool = True, field_size: int = 3) -> tuple:
+    field_str = ''
+    for line in game_field:
+        for val in line:
+            if not val:
+                val = ' '
+            field_str += val
+    return cache_minimax(field_str, depth, player, opponent, step_player, field_size)
+
+
+@lru_cache(maxsize=900)
+def cache_minimax(game_field: str, depth: int = 1, player: str = 'X', opponent: str = 'O',
+                  step_player: bool = True, field_size: int = 3) -> tuple:
+    if depth == 1:
+        read_json_file()
+    if game_field in READY_SOLUTION:
+        if player in READY_SOLUTION[game_field]:
+            return READY_SOLUTION[game_field][player]
+
+    field_arr = [['' for _ in range(field_size)] for _ in range(field_size)]
+    index = 0
+    for pos_line, line in enumerate(field_arr):
+        for pos_val, val in enumerate(line):
+            if game_field[index] and game_field[index] != ' ':
+                field_arr[pos_line][pos_val] = game_field[index]
+            index += 1
+
+    # print(f"Minimax: {game_field=}; {depth=}; {step_player=}")
+    if check_end_game(field_arr) or check_win(field_arr):
+        # print(f"\tReturn {game_field=}; {depth=}; {step_player=}; {score(game_field, depth, player)}")
+        return score(field_arr, depth, player), ()
+    depth += 1
+    scores = []  # an array of scores
+    moves = []  # an array of moves
+
+    # Populate the scores array, recursing as needed
+    index_line = -1
+    for pos in range(len(game_field)):
+        if pos % field_size == 0:
+            index_line += 1
+        if game_field[pos] == ' ':
+            if step_player:
+                copy_field = f"{game_field[:pos]}{player}{game_field[pos + 1:]}"
+            else:
+                copy_field = f"{game_field[:pos]}{opponent}{game_field[pos + 1:]}"
+            n_score, n_move = cache_minimax(copy_field, depth, player, opponent, not step_player, field_size)
+            scores.append(n_score)
+            pos_step_line, pos_step_row = index_line, pos % field_size
+            moves.append((pos_step_line, pos_step_row))
+
+    # print(f"{scores=}; {moves=}; {game_field=}; {depth=}; {step_player=}")
+    # Do the min or the max calculation
+    if step_player:
+        # This is the max calculation
+        max_score_index = scores.index(max(scores))
+        choice = moves[max_score_index]
+        # print(f"\tReturn {max_score_index=}; {choice=}; {scores[max_score_index]=}")
+        if game_field not in READY_SOLUTION:
+            add_dict = {player: (scores[max_score_index], choice)}
+            READY_SOLUTION[game_field] = add_dict
+
+        return scores[max_score_index], choice
+    else:
+        # This is the min calculation
+        min_score_index = scores.index(min(scores))
+        choice = moves[min_score_index]
+        # print(f"\tReturn {min_score_index=}; {choice=}; {scores[min_score_index]=}")
+        if game_field not in READY_SOLUTION:
+            add_dict = {player: (scores[min_score_index], choice)}
+            READY_SOLUTION[game_field] = add_dict
+
+        return scores[min_score_index], choice
+
+
+def test_game() -> None:
     set_field(5)
     # field[2][2] = 'X'
     display_field(field, 'Begin')
@@ -146,17 +245,30 @@ def test_game():
         display_field(field, 'Opponent step:')
 
 
-if __name__ == '__main__':
-    # test_game()
+def test_cache() -> None:
     for _ in range(3):
         begin_field = [['O', '', ''], ['', '', 'X'], ['', '', '']]
         start = perf_counter()
-        res = minimax(begin_field)
+        res = get_cache_minimax(begin_field)
+        # res = minimax(begin_field)
         end = perf_counter()
         print(f"1: {res=} -> {end - start}")
 
         begin_field2 = [['X', '', ''], ['', '', 'O'], ['', '', '']]
         start2 = perf_counter()
-        res2 = minimax(begin_field)
+        res2 = get_cache_minimax(begin_field2)
         end2 = perf_counter()
         print(f"2: {res2=} -> {end2 - start2}")
+
+        begin_field3 = [['X', '', '', ''], ['', '', 'O', ''], ['', '', '', ''], ['', '', '', '']]
+        start3 = perf_counter()
+        res3 = get_cache_minimax(begin_field3)
+        end3 = perf_counter()
+        print(f"3: {res3=} -> {end3 - start3}")
+
+
+if __name__ == '__main__':
+    # test_game()
+    read_json_file()
+    test_cache()
+    # write_data_json(READY_SOLUTION)

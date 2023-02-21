@@ -1,12 +1,12 @@
 from tkinter import *
 import random
-from Algorithm import minimax
+from Algorithm import minimax, cache_minimax
 
 root = Tk()
 root.title('Criss-Cross')
 game_run = True
 field = []
-FIELD_SIZE = 3
+FIELD_SIZE = 4
 cross_count = 1
 total_cross_count = FIELD_SIZE ** 2
 player = 'X'
@@ -32,7 +32,8 @@ def click(row, col):
         check_win('X')
         if cross_count < total_cross_count:
             cross_count += 1
-            computer_move_minimax()
+            # computer_move_minimax()
+            computer_move_cache_minimax()
             # computer_move_algorithm()
             check_win('O')
 
@@ -125,6 +126,19 @@ def computer_move_minimax() -> None:
             else:
                 game_field[row][col] = field[row][col]['text']
     result = minimax(game_field=game_field, depth=1, player=computer, opponent=player, step_player=True)
+    score, step = result[0], result[1]
+    step_x, step_y = step[0], step[1]
+    field[step_x][step_y]['text'] = computer
+    field[step_x][step_y]['fg'] = 'magenta'
+
+
+def computer_move_cache_minimax() -> None:
+    game_field = ''
+    for row in range(FIELD_SIZE):
+        for col in range(FIELD_SIZE):
+            game_field += field[row][col]['text']
+    result = cache_minimax(game_field=game_field, depth=1, player=computer, opponent=player, step_player=True,
+                           field_size=FIELD_SIZE)
     score, step = result[0], result[1]
     step_x, step_y = step[0], step[1]
     field[step_x][step_y]['text'] = computer
